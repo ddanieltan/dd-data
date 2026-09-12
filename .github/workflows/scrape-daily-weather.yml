@@ -1,0 +1,48 @@
+name: Scrape Daily Weather
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '9 * * * *'
+
+jobs:
+  scrape-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Scraper Engine (dd-data)
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen || uv sync
+
+      - name: Checkout Target Data Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ddanieltan/daily-weather-sg
+          token: ${{ secrets.TARGET_REPO_PAT }}
+          path: target-repo
+          fetch-depth: 1
+
+      - name: Configure Git Author
+        run: |
+          cd target-repo
+          git config user.name "dd-data[bot]"
+          git config user.email "dd-data@users.noreply.github.com"
+
+      - name: Scrape with Step Retries
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          retry_on: error
+          command: |
+            PYTHONPATH=src uv run python -m dd_data.cli scrape daily-weather --target-dir target-repo
