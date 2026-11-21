@@ -1,4 +1,4 @@
-"""Daily Weather (Air Temperature) scraper for ddanieltan/daily-weather-sg."""
+"""Daily Weather (Air Temperature) scraper stored in data/daily-weather/weather.json."""
 
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -55,9 +55,7 @@ class DailyWeatherPayload(BaseModel):
 class DailyWeatherScraper(BaseScraper):
     name = "daily-weather"
     description = "Daily air temperature readings from Singapore data.gov.sg"
-    target_repo = "ddanieltan/daily-weather-sg"
-    target_branch = "main"
-    target_path = "weather.json"
+    target_path = "data/daily-weather/weather.json"
     schema = DailyWeatherPayload
 
     def __init__(self, timeout: float = 30.0) -> None:

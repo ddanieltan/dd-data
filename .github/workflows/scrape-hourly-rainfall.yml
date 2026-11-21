@@ -5,11 +5,14 @@ on:
   schedule:
     - cron: '42 * * * *'
 
+permissions:
+  contents: write
+
 jobs:
   scrape-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Scraper Engine (dd-data)
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup uv
@@ -24,19 +27,10 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen || uv sync
 
-      - name: Checkout Target Data Repository
-        uses: actions/checkout@v4
-        with:
-          repository: ddanieltan/sg-hourly-rainfall
-          token: ${{ secrets.TARGET_REPO_PAT }}
-          path: target-repo
-          fetch-depth: 1
-
       - name: Configure Git Author
         run: |
-          cd target-repo
-          git config user.name "dd-data[bot]"
-          git config user.email "dd-data@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Scrape with Step Retries
         uses: nick-fields/retry@v3
@@ -45,4 +39,4 @@ jobs:
           max_attempts: 3
           retry_on: error
           command: |
-            PYTHONPATH=src uv run python -m dd_data.cli scrape hourly-rainfall --target-dir target-repo
+            PYTHONPATH=src uv run python -m dd_data.cli scrape hourly-rainfall

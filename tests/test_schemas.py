@@ -16,7 +16,7 @@ def test_registry_registration() -> None:
 
     scraper = registry.get("daily-weather")
     assert isinstance(scraper, DailyWeatherScraper)
-    assert scraper.target_repo == "ddanieltan/daily-weather-sg"
+    assert scraper.target_path == "data/daily-weather/weather.json"
 
     with pytest.raises(KeyError):
         registry.get("non-existent-scraper")
@@ -163,5 +163,4 @@ def test_payload_formatting_deterministic() -> None:
     formatted = scraper.format_payload(validated)
 
     assert formatted.endswith("\n")
-    # Verify deterministic key order (e.g. "api_info" or "items" before "metadata")
     assert formatted.index('"items"') < formatted.index('"metadata"')

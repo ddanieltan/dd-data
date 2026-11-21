@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 import json
-from typing import Any, ClassVar, Dict, Type
+from typing import Any, ClassVar, Dict, Optional, Type
 from pydantic import BaseModel, ValidationError
 
 from dd_data.core.logger import log_error, log_info, log_success
@@ -39,9 +39,8 @@ class BaseScraper(ABC):
 
     name: ClassVar[str]
     description: ClassVar[str]
-    target_repo: ClassVar[str]
-    target_branch: ClassVar[str] = "main"
     target_path: ClassVar[str]
+    target_branch: ClassVar[str] = "main"
     schema: ClassVar[Type[BaseModel]]
 
     @abstractmethod
@@ -74,7 +73,6 @@ class BaseScraper(ABC):
 
         Uses 2-space indentation, sorted keys, and guarantees a trailing newline.
         """
-        # Convert model to python dict, then serialize with sort_keys=True
         data_dict = validated.model_dump(mode="json")
         formatted = json.dumps(data_dict, indent=2, sort_keys=True, ensure_ascii=False)
         return formatted + "\n"

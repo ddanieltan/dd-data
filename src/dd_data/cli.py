@@ -21,15 +21,14 @@ app = typer.Typer(
 
 @app.command(name="list")
 def list_scrapers() -> None:
-    """List all registered scrapers and their target repositories."""
+    """List all registered scrapers and their target paths."""
     table = Table(title="Registered Git-Scrapers in dd-data")
     table.add_column("Scraper Name", style="bold cyan")
-    table.add_column("Target Repository", style="green")
-    table.add_column("Target File", style="yellow")
+    table.add_column("Target Path", style="yellow")
     table.add_column("Description")
 
     for name, scraper in sorted(registry.all().items()):
-        table.add_row(name, scraper.target_repo, scraper.target_path, scraper.description)
+        table.add_row(name, scraper.target_path, scraper.description)
 
     console.print(table)
 
@@ -53,11 +52,11 @@ def validate_file(
 @app.command(name="scrape")
 def scrape(
     scraper_name: str = typer.Argument(..., help="Name of the scraper to run"),
-    target_dir: Optional[Path] = typer.Option(
-        None,
+    target_dir: Path = typer.Option(
+        Path("."),
         "--target-dir",
         "-d",
-        help="Root directory of the checked-out target repository",
+        help="Root directory of the dd-data repository (defaults to current dir)",
     ),
     output_file: Optional[Path] = typer.Option(
         None,
@@ -82,7 +81,7 @@ def scrape(
         help="Git branch to push to",
     ),
 ) -> None:
-    """Run a scraper, validate the schema guard, and update the target repository."""
+    """Run a scraper, validate the schema guard, and update data/ in dd-data."""
     try:
         scraper = registry.get(scraper_name)
     except KeyError as e:
@@ -110,20 +109,14 @@ def scrape(
             log_info(f"Wrote dry-run output to {output_file}")
         return
 
-    # Normal execution: require target directory or output file
+    # Direct output file override
     if output_file:
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(formatted_content, encoding="utf-8")
         log_success(f"Wrote validated data to {output_file}")
         return
 
-    if not target_dir:
-        log_error(
-            "Neither --target-dir nor --output-file was provided. "
-            "Pass --target-dir to update a git repo, --output-file, or --dry-run."
-        )
-        raise typer.Exit(code=1)
-
+    # Normal execution: write to target_dir / target_path
     target_file = write_target_file(target_dir, scraper.target_path, formatted_content)
 
     if commit:

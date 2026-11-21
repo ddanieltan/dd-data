@@ -1,8 +1,12 @@
 # dd-data
 
-> **Centralized Git-Scraping Engine** with strict Pydantic schema guards, automated workflow retries, and decoupled data repositories.
+> **Centralized Git-Scraping Repository** with strict Pydantic schema guards, automated workflow retries, and clean subfolder datasets.
 
-Inspired by [Simon Willison's git-scraping pattern](https://simonwillison.net/series/git-scraping/), `dd-data` centralizes scraping logic, dependency management, scheduling, and error handling into a single repository while pushing clean, versioned data commits to independent target repositories (such as [`ddanieltan/daily-weather-sg`](https://github.com/ddanieltan/daily-weather-sg) and [`ddanieltan/sg-hourly-rainfall`](https://github.com/ddanieltan/sg-hourly-rainfall)).
+Inspired by [Simon Willison's git-scraping pattern](https://simonwillison.net/series/git-scraping/), `dd-data` centralizes scraping logic, scheduling, data integrity guards, and versioned datasets into a single self-contained repository.
+
+All scraped datasets are organized in the `data/` directory:
+- `data/daily-weather/weather.json` (Daily air temperature readings)
+- `data/hourly-rainfall/rainfall.json` (Real-time hourly rainfall readings)
 
 ---
 
@@ -24,37 +28,18 @@ Inspired by [Simon Willison's git-scraping pattern](https://simonwillison.net/se
                              │
                Clean Normalized Data & Commit
                              │
-          ┌──────────────────┴──────────────────┐
-          ▼                                     ▼
-┌──────────────────┐                  ┌──────────────────┐
-│ daily-weather-sg │                  │sg-hourly-rainfall│
-│ (Target Repo)    │                  │  (Target Repo)   │
-└──────────────────┘                  └──────────────────┘
+                             ▼
+                  ┌──────────────────────┐
+                  │      data/...        │
+                  │ (Committed directly) │
+                  └──────────────────────┘
 ```
 
 ### Key Capabilities
-1. **Schema Guards**: Responses are strictly validated using Pydantic models. Malformed responses, empty datasets, or HTTP 5xx errors immediately abort before writing to disk, ensuring bad data is never committed to git history.
-2. **Transient Failure Resilience**: Workflows wrap the scraper execution in `nick-fields/retry@v3` (3 retry attempts) to absorb transient connection drops, timeouts, and rate limits.
-3. **No Dirty Diffs**: Data is deterministically formatted with sorted keys and stable 2-space indentation. Commits are skipped entirely if data has not changed.
-4. **Decoupled Repositories**: Keeps individual data repositories lightweight, containing only data and commit logs, without redundant workflow boilerplate or scraping logic.
-
----
-
-## ⚙️ Initial Setup
-
-To allow `dd-data` to push updates into your individual data repositories:
-
-1. Create a **Fine-Grained Personal Access Token** in GitHub:
-   - Go to **GitHub Settings** > **Developer Settings** > **Personal Access Tokens** > **Fine-grained tokens**.
-   - Set Repository Access to **Only select repositories**:
-     - `ddanieltan/daily-weather-sg`
-     - `ddanieltan/sg-hourly-rainfall`
-     - *(Any future target data repositories)*
-   - Grant Permissions:
-     - **Repository permissions** > **Contents**: `Read and write`.
-2. In the `dd-data` repository:
-   - Go to **Settings** > **Secrets and variables** > **Actions**.
-   - Create a repository secret named **`TARGET_REPO_PAT`** and paste your token.
+1. **Zero External Secrets**: Commits directly to this repository in GitHub Actions using the built-in `GITHUB_TOKEN`. No Personal Access Tokens (PATs) or token expirations to manage!
+2. **Schema Guards**: Responses are strictly validated using Pydantic models. Malformed responses, empty datasets, or HTTP 5xx errors immediately abort before writing to disk, ensuring bad data is never committed to git history.
+3. **Transient Failure Resilience**: Workflows wrap the scraper execution in `nick-fields/retry@v3` (3 retry attempts) to absorb transient connection drops, timeouts, and rate limits.
+4. **Deterministic Diffs**: Data is deterministically formatted with sorted keys and stable 2-space indentation. Commits are skipped entirely if data has not changed.
 
 ---
 
@@ -68,7 +53,7 @@ To allow `dd-data` to push updates into your individual data repositories:
 ```bash
 uv venv --python python3 .venv
 source .venv/bin/activate
-uv pip install -e .  # or run via PYTHONPATH=src
+uv pip install -r pyproject.toml
 ```
 
 ### CLI Commands
@@ -79,20 +64,20 @@ PYTHONPATH=src .venv/bin/python -m dd_data.cli list
 ```
 
 #### 2. Dry-run a scraper locally:
-Fetches live data from the API, validates against the Pydantic schema guard, and prints a preview without touching any git repository:
+Fetches live data from the API, validates against the Pydantic schema guard, and prints a preview without committing:
 ```bash
 PYTHONPATH=src .venv/bin/python -m dd_data.cli scrape daily-weather --dry-run
 PYTHONPATH=src .venv/bin/python -m dd_data.cli scrape hourly-rainfall --dry-run
 ```
 
-#### 3. Save validated output locally:
+#### 3. Scrape and save to `data/` locally (without commit):
 ```bash
-PYTHONPATH=src .venv/bin/python -m dd_data.cli scrape daily-weather -o /tmp/weather.json
+PYTHONPATH=src .venv/bin/python -m dd_data.cli scrape daily-weather --no-commit
 ```
 
 #### 4. Validate an existing data file:
 ```bash
-PYTHONPATH=src .venv/bin/python -m dd_data.cli validate daily-weather path/to/weather.json
+PYTHONPATH=src .venv/bin/python -m dd_data.cli validate daily-weather data/daily-weather/weather.json
 ```
 
 ### Running Tests
@@ -104,7 +89,7 @@ PYTHONPATH=src .venv/bin/pytest -v
 
 ## ➕ Adding a New Scraper
 
-Adding a new dataset or target repository takes 3 simple steps:
+Adding a new dataset takes 3 simple steps:
 
 ### 1. Define the Scraper and Schema Guard
 Create a new file in `src/dd_data/scrapers/my_scraper.py`:
@@ -122,9 +107,7 @@ class MyDataPayload(BaseModel):
 class MyScraper(BaseScraper):
     name = "my-dataset"
     description = "Scrapes my new dataset"
-    target_repo = "ddanieltan/my-dataset-repo"
-    target_branch = "main"
-    target_path = "data.json"
+    target_path = "data/my-dataset/latest.json"
     schema = MyDataPayload
 
     def fetch(self) -> Any:
@@ -140,4 +123,7 @@ from dd_data.scrapers.my_scraper import MyScraper
 ```
 
 ### 3. Create a GitHub Actions Workflow
-Add `.github/workflows/scrape-my-dataset.yml` with your desired cron frequency and target repository checkout.
+Add `.github/workflows/scrape-my-dataset.yml` with your desired cron frequency calling:
+```yaml
+PYTHONPATH=src uv run python -m dd_data.cli scrape my-dataset
+```

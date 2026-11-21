@@ -1,4 +1,4 @@
-"""Hourly Rainfall scraper for ddanieltan/sg-hourly-rainfall."""
+"""Hourly Rainfall scraper stored in data/hourly-rainfall/rainfall.json."""
 
 from typing import Any, Dict, List, Optional
 import httpx
@@ -54,9 +54,7 @@ class HourlyRainfallPayload(BaseModel):
 class HourlyRainfallScraper(BaseScraper):
     name = "hourly-rainfall"
     description = "Hourly rainfall readings from Singapore api-open.data.gov.sg"
-    target_repo = "ddanieltan/sg-hourly-rainfall"
-    target_branch = "main"
-    target_path = "api-open.data.gov.sg-v2-real-time-api-rainfall.json"
+    target_path = "data/hourly-rainfall/rainfall.json"
     schema = HourlyRainfallPayload
 
     def __init__(self, timeout: float = 30.0) -> None:

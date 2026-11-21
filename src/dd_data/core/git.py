@@ -21,7 +21,6 @@ def write_target_file(repo_dir: Path, rel_path: str, content: str) -> Path:
 def run_git(repo_dir: Path, *args: str) -> subprocess.CompletedProcess:
     """Executes a git command inside the repo directory with clean environment."""
     env = os.environ.copy()
-    # Avoid local gitconfig leakage in sandbox/CI if needed
     if "GIT_CONFIG_GLOBAL" not in env and not os.path.exists(os.path.expanduser("~/.gitconfig")):
         env["GIT_CONFIG_GLOBAL"] = "/dev/null"
 
@@ -54,12 +53,18 @@ def commit_and_push(
 
     if not commit_msg:
         now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-        commit_msg = f"Automated data update: {now_utc}"
+        commit_msg = f"Automated data update ({rel_path}): {now_utc}"
 
     try:
         run_git(repo_dir, "add", rel_path)
         run_git(repo_dir, "commit", "-m", commit_msg)
         log_info(f"Committed changes: {commit_msg}")
+
+        # Pull with rebase to ensure clean concurrent pushes if multiple jobs run
+        try:
+            run_git(repo_dir, "pull", "--rebase", "origin", branch)
+        except subprocess.CalledProcessError:
+            log_warning("No upstream branch or git pull --rebase failed, proceeding with push.")
 
         run_git(repo_dir, "push", "origin", branch)
         log_success(f"Pushed commit to origin/{branch} successfully.")
