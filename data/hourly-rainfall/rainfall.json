@@ -263,10 +263,6 @@
             "value": 0.0
           },
           {
-            "stationId": "S226",
-            "value": 0.0
-          },
-          {
             "stationId": "S303",
             "value": 0.0
           },
@@ -359,7 +355,7 @@
             "value": 0.0
           }
         ],
-        "timestamp": "2026-11-26T04:05:00+08:00"
+        "timestamp": "2026-11-26T10:55:00+08:00"
       }
     ],
     "stations": [
@@ -938,15 +934,6 @@
           "longitude": 103.66303
         },
         "name": "Tengeh Reservoir"
-      },
-      {
-        "deviceId": "S226",
-        "id": "S226",
-        "location": {
-          "latitude": 1.27472,
-          "longitude": 103.80389
-        },
-        "name": "Malan Road"
       },
       {
         "deviceId": "S303",
