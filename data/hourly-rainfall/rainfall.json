@@ -159,6 +159,10 @@
             "value": 0.0
           },
           {
+            "stationId": "S910",
+            "value": 0.0
+          },
+          {
             "stationId": "S115",
             "value": 0.0
           },
@@ -172,6 +176,10 @@
           },
           {
             "stationId": "S114",
+            "value": 0.0
+          },
+          {
+            "stationId": "S60",
             "value": 0.0
           },
           {
@@ -351,7 +359,7 @@
             "value": 0.0
           }
         ],
-        "timestamp": "2026-11-27T12:25:00+08:00"
+        "timestamp": "2026-11-27T22:15:00+08:00"
       }
     ],
     "stations": [
@@ -698,6 +706,15 @@
         "name": "Banyan Road (Jurong Island)"
       },
       {
+        "deviceId": "S910",
+        "id": "S910",
+        "location": {
+          "latitude": 1.31183,
+          "longitude": 103.95438
+        },
+        "name": "S910"
+      },
+      {
         "deviceId": "S115",
         "id": "S115",
         "location": {
@@ -732,6 +749,15 @@
           "longitude": 103.7381
         },
         "name": "Choa Chu Kang Avenue 4"
+      },
+      {
+        "deviceId": "S60",
+        "id": "S60",
+        "location": {
+          "latitude": 1.2504,
+          "longitude": 103.8275
+        },
+        "name": "Artillery Avenue (Sentosa)"
       },
       {
         "deviceId": "S64",
